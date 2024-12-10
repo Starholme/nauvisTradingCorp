@@ -1,0 +1,13 @@
+{
+    "name": "nauvis_trading_corporation",
+    "version": "2.0.0",
+    "title": "Nauvis Trading Corporation",
+    "author": "Starholme",
+    "factorio_version": "2.0",
+    "homepage": "https://github.com/clusterio/subspace_storage",
+    "description": "Market style trading in factorio",
+    "dependencies": [
+        "base",
+        "clusterio_lib"
+    ]
+}

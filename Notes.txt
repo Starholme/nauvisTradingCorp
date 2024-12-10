@@ -1,0 +1,52 @@
+Nauvis Trading Corporation
+
+In-game:
+    UI for Vault ID
+    MVP Import chest
+    MVP Export chest
+    Inventory combinator
+        Just like subspace, list what is available in your storage
+
+Market cost:
+    Fixed per item? per stack?
+    Can we use the 'per rocket'?
+    What does it cost?
+        Rocket fuel? Essentially infinite from oil
+        LDS as 'packaging'?
+        Both?
+
+Web:
+    Inventory
+    Marketplace
+    
+Clusterio plugin:
+    Recieve from instance
+    
+    
+MVP
+    Absolute MVP: Export from factorio to my storage, import back
+    Verify user somehow?
+    Export chest
+    Import chest
+    
+    
+Comms
+    Disable comms if 'not connected'
+    
+    ExportBatch
+        Tick 5s
+        Check export chest
+        Remove items from export chest, add to list
+        Send list to cluster
+            {player:playerSomeId, items:[{itemName:'stuff', qty:1}], someUID}
+    
+    ImportBatch(Called from clusterio)
+        Add list of items to chest
+    
+    ImportRequest(from requester chest)
+        
+        
+        
+    
+        
+        
