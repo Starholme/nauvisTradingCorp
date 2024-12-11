@@ -36,6 +36,11 @@ end
 function TickPing(event)
     local ticks = storage.ticksSinceMasterPinged + 1
     storage.ticksSinceMasterPinged = ticks
+    if debug then
+        if event.tick % 300 == 0 then
+            game.print("ticksSinceMasterPinged:"..ticks)
+        end
+    end
     if ticks < 300 then
         storage.isConnected = true
     else
@@ -58,9 +63,13 @@ function TickExports(event)
     end
     --if connected, send the list to clusterio
     if storage.isConnected then
-        local items = storage.exportList
+        local items = {}
+        for name, count in pairs(storage.exportList) do
+            table.insert(items, {name, count})
+        end
         if #items > 0 then
-            clusterio_api.send_json("ntc:exports", items)
+            if debug then game.print("nauvis_trading_corporation:exportFromInstance") end
+            clusterio_api.send_json("nauvis_trading_corporation:exportFromInstance", items)
             storage.exportList = {}
         end
     end
