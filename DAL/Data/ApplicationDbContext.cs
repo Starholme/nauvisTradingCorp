@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using DAL.DBO;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace DAL.Data
@@ -9,5 +10,8 @@ namespace DAL.Data
             : base(options)
         {
         }
+
+        public required DbSet<Vault> Vaults { get; set; }
+        public required DbSet<ItemStack> Items { get; set; }
     }
 }
