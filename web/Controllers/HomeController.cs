@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using BL.Services;
+using DTO;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using web.Helpers;
@@ -11,17 +12,32 @@ namespace web.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly IVaultService _vaultService;
+        private readonly IClusterioService _clusterioService;
 
-        public HomeController(ILogger<HomeController> logger, IVaultService vaultService)
+        public HomeController(ILogger<HomeController> logger, IVaultService vaultService, IClusterioService clusterioService)
         {
             _logger = logger;
             _vaultService = vaultService;
+            _clusterioService = clusterioService;
         }
 
         public async Task<IActionResult> Index()
         {
-            var vault = await _vaultService.GetOrCreateVaultForUser(User.GetUserId());
-            return View(vault);
+            var dto = new HomeDTO();
+            dto.Vault = await _vaultService.GetOrCreateVaultForUser(User.GetUserId());
+            var instance = await _clusterioService.GetInstanceStatus("1176834574");
+            dto.InstanceStatus = instance != null ? instance.Status : "Unknown";
+            return View(dto);
+        }
+
+        public async Task<IActionResult> StartInstance() {
+            var instanceId = "1176834574";
+            return Ok();
+            
+
+            //Call to clusterio
+            
+
         }
 
         [AllowAnonymous]

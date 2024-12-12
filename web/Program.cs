@@ -20,7 +20,11 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddAuthorizationBuilder()
     .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+
 builder.Services.AddScoped<IVaultService, VaultService>();
+builder.Services.AddScoped<IClusterioService, ClusterioService>();
 
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly(), Assembly.GetAssembly(typeof(BL.Services.VaultService)));
 

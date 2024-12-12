@@ -1,4 +1,4 @@
-﻿@model DTO.VaultDTO
+﻿@model DTO.HomeDTO
 @{
     ViewData["Title"] = "Home Page";
 }
@@ -6,6 +6,8 @@
 <div class="text-center">
     <h1 class="display-4">Welcome</h1>
     <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-    <p>Vault: @Model.Id</p>
-    <p>Items: @Model.Items.Count()</p>
+    <p>Vault: @Model.Vault.Id</p>
+    <p>Items: @Model.Vault.Items.Count()</p>
+    <p>Instance: @Model.InstanceStatus</p>
+    <p><a class="btn btn-primary" asp-action="StartInstance">Start server</a></p>
 </div>
