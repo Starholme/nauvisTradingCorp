@@ -32,6 +32,7 @@ namespace web.Controllers
 
         public async Task<IActionResult> StartInstance() {
             var instanceId = "1176834574";
+            await _clusterioService.StartInstance(instanceId);
             return Ok();
             
 

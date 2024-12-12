@@ -14,6 +14,7 @@ namespace BL.Services
     public interface IClusterioService
     {
         public Task<InstanceDTO?> GetInstanceStatus(string instanceId);
+        public Task<bool> StartInstance(string instanceId);
     }
 
     public class ClusterioService : IClusterioService
@@ -35,10 +36,11 @@ namespace BL.Services
 
         public async Task<InstanceDTO?> GetInstanceStatus(string instanceId)
         {
-            string[]? res;
+            int intId = int.Parse(instanceId);
+            InstanceDTO[]? res;
             try
             {
-                res = await _cluster.GetFromJsonAsync<string[]>(_baseUrl + "instances");
+                res = await _cluster.GetFromJsonAsync<InstanceDTO[]>(_baseUrl + "instances");
             }
             catch (Exception ex)
             {
@@ -52,17 +54,26 @@ namespace BL.Services
 
             foreach (var item in res)
             {
-                var split = item.Split('|');
-                dtos.Add(new InstanceDTO()
-                {
-                    Name = split[0],
-                    InstanceId = split[1],
-                    Status = split[2],
-                    Port = int.Parse(split[3])
-                });
+                dtos.Add(item);
             }
 
-            return dtos.FirstOrDefault(x => x.InstanceId == instanceId);
+            return dtos.FirstOrDefault(x => x.InstanceId == intId);
+        }
+
+        public async Task<bool> StartInstance(string instanceId)
+        {
+            string res;
+            try
+            {
+                res = await _cluster.GetStringAsync(_baseUrl + "startInstance?id=" + instanceId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Unable to contact cluster: {Ex}", ex);
+                return false;
+            }
+            if (res == "Starting") return true;
+            return false;
         }
     }
 }
