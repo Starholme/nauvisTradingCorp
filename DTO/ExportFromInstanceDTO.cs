@@ -2,7 +2,7 @@
 {
     public class ExportFromInstanceDTO
     {
-        public string InstanceId { get; set; } = "";
-        public List<ItemStackDTO> Items { get; set; } = [];
+        public int InstanceId { get; set; }
+        public List<List<object>> Items { get; set; } = [];
     }
 }

@@ -4,6 +4,7 @@ using DAL.Data;
 using Microsoft.AspNetCore.Authorization;
 using BL.Services;
 using System.Reflection;
+using web;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +26,8 @@ builder.Logging.AddConsole();
 
 builder.Services.AddScoped<IVaultService, VaultService>();
 builder.Services.AddScoped<IClusterioService, ClusterioService>();
+
+builder.Services.AddHostedService<BackgroundTimerService>();
 
 builder.Services.AddAutoMapper(Assembly.GetExecutingAssembly(), Assembly.GetAssembly(typeof(BL.Services.VaultService)));
 

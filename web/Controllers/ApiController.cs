@@ -15,17 +15,5 @@ namespace web.Controllers
             _vaultService = vaultService;
         }
 
-        public async Task<IActionResult> ExportFromInstance (ExportFromInstanceDTO dto)
-        {
-            if (!ModelState.IsValid)
-            {
-                return Problem("Invalid model");
-            }
-            _logger.LogInformation("Recieved items from instance: " + dto.InstanceId + " count: " + dto.Items.Count);
-
-            await _vaultService.AddItemsToVault(dto);
-
-            return Ok();
-        }
     }
 }

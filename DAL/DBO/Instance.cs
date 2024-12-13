@@ -6,6 +6,6 @@
         public string ClusterInstanceId { get; set; } = "";
         
         public int VaultId { get; set; }
-        public virtual Vault Vault { get; set; } = new ();
+        public virtual Vault? Vault { get; set; }
     }
 }

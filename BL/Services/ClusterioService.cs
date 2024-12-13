@@ -2,12 +2,7 @@
 using DAL.Data;
 using DTO;
 using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Http.Json;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BL.Services
 {
@@ -15,21 +10,18 @@ namespace BL.Services
     {
         public Task<InstanceDTO?> GetInstanceStatus(string instanceId);
         public Task<bool> StartInstance(string instanceId);
+        public Task<List<ExportFromInstanceDTO>> GetExportsFromInstances(CancellationToken cancellationToken);
     }
 
     public class ClusterioService : IClusterioService
     {
         private readonly ILogger<ClusterioService> _logger;
-        private readonly ApplicationDbContext _context;
-        private readonly IMapper _mapper;
         private readonly HttpClient _cluster;
         private readonly string _baseUrl;
 
-        public ClusterioService(ILogger<ClusterioService> logger, ApplicationDbContext context, IMapper mapper)
+        public ClusterioService(ILogger<ClusterioService> logger)
         {
             _logger = logger;
-            _context = context;
-            _mapper = mapper;
             _cluster = new HttpClient();
             _baseUrl = "http://localhost:8080/api/nauvis_trading_corporation/";
         }
@@ -74,6 +66,22 @@ namespace BL.Services
             }
             if (res == "Starting") return true;
             return false;
+        }
+
+        public async Task<List<ExportFromInstanceDTO>> GetExportsFromInstances(CancellationToken cancellationToken)
+        {
+            List<ExportFromInstanceDTO>? dtos;
+            try
+            {
+                dtos = await _cluster.GetFromJsonAsync<List<ExportFromInstanceDTO>>(_baseUrl + "getExportsFromInstances", cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Unable to contact cluster: {Ex}", ex);
+                return new List<ExportFromInstanceDTO>();
+            }
+            if (dtos == null) return new List<ExportFromInstanceDTO>();
+            return dtos;
         }
     }
 }

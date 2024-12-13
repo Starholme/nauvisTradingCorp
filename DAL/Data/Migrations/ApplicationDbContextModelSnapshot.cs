@@ -41,7 +41,7 @@ namespace DAL.Data.Migrations
 
                     b.HasIndex("VaultId");
 
-                    b.ToTable("Instances");
+                    b.ToTable("Instances", (string)null);
                 });
 
             modelBuilder.Entity("DAL.DBO.ItemStack", b =>
@@ -70,7 +70,7 @@ namespace DAL.Data.Migrations
 
                     b.HasIndex("VaultId");
 
-                    b.ToTable("Items");
+                    b.ToTable("Items", (string)null);
                 });
 
             modelBuilder.Entity("DAL.DBO.Vault", b =>
@@ -86,7 +86,7 @@ namespace DAL.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Vaults");
+                    b.ToTable("Vaults", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>

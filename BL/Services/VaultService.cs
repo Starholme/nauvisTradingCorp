@@ -3,29 +3,27 @@ using DAL.Data;
 using DAL.DBO;
 using DTO;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Text.Json;
 
 namespace BL.Services
 {
     public interface IVaultService
     {
         public Task<VaultDTO> GetOrCreateVaultForUser(Guid userId);
-        public Task<bool> AddItemsToVault(ExportFromInstanceDTO dto);
+        public Task GetExportsFromInstances(CancellationToken stoppingToken);
     }
 
     public class VaultService : IVaultService
     {
         private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IClusterioService _clusterioService;
 
-        public VaultService(ApplicationDbContext context, IMapper mapper)
+        public VaultService(ApplicationDbContext context, IMapper mapper, IClusterioService clusterioService)
         {
             _context = context;
             _mapper = mapper;
+            _clusterioService = clusterioService;
         }
 
         public async Task<VaultDTO> GetOrCreateVaultForUser(Guid userId)
@@ -59,21 +57,27 @@ namespace BL.Services
 
         private async Task<Vault?> GetVaultForInstance(string instanceId)
         {
+#pragma warning disable CS8604 // Possible null reference argument.
             var vault = await _context.Vaults.Where(v => v.Instances.Any(i => i.ClusterInstanceId == instanceId)).FirstOrDefaultAsync();
+#pragma warning restore CS8604 // Possible null reference argument.
             return vault;
         }
 
-        public async Task<bool> AddItemsToVault(ExportFromInstanceDTO dto)
+        private async Task<bool> AddItemsToVault(ExportFromInstanceDTO dto)
         {
-            var dbo = await GetVaultForInstance(dto.InstanceId);
+            var dbo = await GetVaultForInstance(dto.InstanceId.ToString());
             if (dbo == null) return false;
 
             //Loop items to add
             foreach (var item in dto.Items)
             {
-                await UpsertItemStack(dbo.Id, item);
+                string name = ((JsonElement)item[0]).ToString();
+                int qty = 0;
+                ((JsonElement)item[1]).TryGetInt32(out qty);
+                var itemStack = new ItemStackDTO() { NameAndQuality = name, Quantity = qty };
+                await UpsertItemStack(dbo.Id, itemStack);
             }
-            await _context.SaveChangesAsync();
+
 
             return true;
         }
@@ -94,6 +98,20 @@ namespace BL.Services
             }
             else dbo.Quantity += itemDto.Quantity;
 
+        }
+
+        public async Task GetExportsFromInstances(CancellationToken stoppingToken)
+        {
+            //Ask cluster for latest items exported
+            var items = await _clusterioService.GetExportsFromInstances(stoppingToken);
+
+            //Add the items
+            foreach (var item in items)
+            {
+                await AddItemsToVault(item);
+            }
+
+            await _context.SaveChangesAsync();
         }
 
     }
