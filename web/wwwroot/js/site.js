@@ -1,4 +1,16 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
+﻿(function () {
+    //Page ready
+    $(function () {
+        SetupBtnNoNavigate();
+    })
 
-// Write your JavaScript code.
+    function SetupBtnNoNavigate() {
+        $(".btn-no-navigate").each(function () {
+            $(this).on("click", function (event) {
+                event.preventDefault();
+                let url = $(this).data("url");
+                $.get(url);
+            });
+        });
+    }
+})();

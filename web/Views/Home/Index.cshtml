@@ -9,5 +9,5 @@
     <p>Vault: @Model.Vault.Id</p>
     <p>Items: @Model.Vault.Items.Count()</p>
     <p>Instance: @Model.InstanceStatus</p>
-    <p><a class="btn btn-primary" asp-action="StartInstance">Start server</a></p>
+    <p><a class="btn btn-primary btn-no-navigate" data-url="@Url.Action("StartInstance","Home")">Start server</a></p>
 </div>
