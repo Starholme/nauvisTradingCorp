@@ -49,6 +49,7 @@ function TickPing(event)
 end
 
 function TickExports(event)
+    if event.tick % 120 > 0 then return end
     --Loop the export chests, empty them, add the items to a list
     local chests = storage.exportChests
     for _, data in ipairs(chests) do
