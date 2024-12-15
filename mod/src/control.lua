@@ -24,6 +24,12 @@ function AddEntity(entity)
         end
         table.insert(storage.exportChests, entity)
     end
+    if entity.name == "ntc-import-chest" then
+        if debug then
+            game.print("Add Entity ".. entity.name)
+        end
+        table.insert(storage.importChests, entity)
+    end
 end
 
 function Reset()
@@ -31,6 +37,10 @@ function Reset()
     storage.isConnected = false
     storage.exportChests = {}
     storage.exportList = {} --{"itemName:quality"=count, ...}
+
+    storage.importChests = {}
+    storage.importList = {} --{"itemName:quality"=count, ...}
+    storage.collectImports = true
 end
 
 function TickPing(event)
@@ -76,6 +86,54 @@ function TickExports(event)
     end
 end
 
+function TallyImportsForChest(entity)
+    --Ignore chest if it's being deconstructed
+    if entity.valid and not entity.to_be_deconstructed(entity.force) then
+        local l_sections = entity.get_logistic_sections()
+        for i = 1, l_sections.sections_count do
+            local l_section = l_sections.sections[i]
+            if l_section.active then 
+                for j = 1, l_section.filters_count do
+                    local filter = l_section.filters[j]
+                    local amount = filter.min
+                    local itemName = filter.value.name .. ":" .. filter.value.quality
+                    storage.importList[itemName] = (storage.exportList[itemName] or 0) + amount
+                    if debug then game.print("ImportTallyAdd:" .. itemName .. amount) end
+                end
+            end
+        end
+    end
+end
+
+function TickImports(event)
+    if event.tick % 6 > 0 then return end
+    --Fill any requests we can
+
+    --If not on the collect imports stage
+    if not storage.collectImports then return end
+
+    --Loop the import chests, tally required vs on hand
+    local chests = storage.importChests
+    for _, data in ipairs(chests) do
+        TallyImportsForChest(data)
+    end
+
+    --if connected, send the list to clusterio
+    if storage.isConnected then
+        local items = {}
+        for name, count in pairs(storage.importList) do
+            table.insert(items, {name, count})
+        end
+        if #items > 0 then
+            if debug then game.print("nauvis_trading_corporation:importRequestFromInstance") end
+            clusterio_api.send_json("nauvis_trading_corporation:importRequestFromInstance", items)
+            storage.importList = {}
+            --Stop collecting till we hear back
+            storage.collectImports = false
+        end
+    end
+end
+
 script.on_init(function()
 	clusterio_api.init()
 	--RegisterClusterioEvents()
@@ -98,4 +156,5 @@ end)
 script.on_event(defines.events.on_tick, function(event)
     TickPing(event)
     TickExports(event)
+    TickImports(event)
 end)
