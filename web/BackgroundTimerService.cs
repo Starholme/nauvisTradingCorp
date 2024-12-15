@@ -9,15 +9,22 @@ namespace web
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+            int counter = 0;
+            using var timer = new PeriodicTimer(TimeSpan.FromSeconds(1));
             while (await timer.WaitForNextTickAsync(stoppingToken))
             {
+                counter++;
                 // do async work
                 using (var scope = _serviceScopeFactory.CreateScope())
                 {
-                    var vaultService = scope.ServiceProvider.GetRequiredService<IVaultService>();
-                    await vaultService.GetExportsFromInstances(stoppingToken);
+                    if (counter % 5 == 0)
+                    {
+                        var vaultService = scope.ServiceProvider.GetRequiredService<IVaultService>();
+                        await vaultService.GetExportsFromInstances(stoppingToken);
+                        await vaultService.GetImportRequestsFromInstances(stoppingToken);
+                    }
                 }
+                if (counter > 599) counter = 0;
             }
         }
     }

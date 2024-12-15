@@ -3,6 +3,7 @@ using DAL.Data;
 using DTO;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace BL.Services
 {
@@ -11,6 +12,8 @@ namespace BL.Services
         public Task<InstanceDTO?> GetInstanceStatus(string instanceId);
         public Task<bool> StartInstance(string instanceId);
         public Task<List<ExportFromInstanceDTO>> GetExportsFromInstances(CancellationToken cancellationToken);
+        public Task<List<ExportFromInstanceDTO>> GetImportRequestsFromInstances(CancellationToken cancellationToken);
+        public Task SetActualImportsForInstances(Dictionary<int, ImportFullfillmentForInstanceJSON> imports, CancellationToken cancellationToken);
     }
 
     public class ClusterioService : IClusterioService
@@ -82,6 +85,29 @@ namespace BL.Services
             }
             if (dtos == null) return new List<ExportFromInstanceDTO>();
             return dtos;
+        }
+
+        
+        public async Task<List<ExportFromInstanceDTO>> GetImportRequestsFromInstances(CancellationToken cancellationToken)
+        {
+            List<ExportFromInstanceDTO>? dtos;
+            try
+            {
+                dtos = await _cluster.GetFromJsonAsync<List<ExportFromInstanceDTO>>(_baseUrl + "getImportRequestsFromInstances", cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Unable to contact cluster: {Ex}", ex);
+                return new List<ExportFromInstanceDTO>();
+            }
+            if (dtos == null) return new List<ExportFromInstanceDTO>();
+            return dtos;
+        }
+
+        public async Task SetActualImportsForInstances(Dictionary<int, ImportFullfillmentForInstanceJSON> imports, CancellationToken cancellationToken)
+        {
+            string json = JsonSerializer.Serialize(imports);
+            await _cluster.PostAsJsonAsync(_baseUrl + "setActualImportsForInstances", imports, cancellationToken);
         }
     }
 }

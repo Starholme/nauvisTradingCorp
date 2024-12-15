@@ -11,6 +11,7 @@ namespace BL.Services
     {
         public Task<VaultDTO> GetOrCreateVaultForUser(Guid userId);
         public Task GetExportsFromInstances(CancellationToken stoppingToken);
+        public Task GetImportRequestsFromInstances(CancellationToken stoppingToken);
     }
 
     public class VaultService : IVaultService
@@ -97,6 +98,28 @@ namespace BL.Services
                 _context.Items.Add(dbo);
             }
             else dbo.Quantity += itemDto.Quantity;
+        }
+
+        private async Task<int> DecrementItemStack(int vaultId, ItemStackDTO itemDto)
+        {
+            var dbo = await _context.Items.FirstOrDefaultAsync(x => x.VaultId == vaultId && x.Name == itemDto.Name && x.Quality == itemDto.Quality);
+            if (dbo == null)
+            {
+                return 0;
+            }
+
+            int qty = itemDto.Quantity;
+            if (dbo.Quantity - qty > -1)
+            {
+                dbo.Quantity -= qty;
+                return qty;
+            }
+            else
+            {
+                qty = dbo.Quantity;
+                dbo.Quantity = 0;
+                return qty;
+            }
 
         }
 
@@ -114,6 +137,55 @@ namespace BL.Services
             await _context.SaveChangesAsync();
         }
 
+
+        public async Task GetImportRequestsFromInstances(CancellationToken stoppingToken)
+        {
+            //Ask cluster for latest item import requests
+            var items = await _clusterioService.GetImportRequestsFromInstances(stoppingToken);
+
+            var actualImports = new Dictionary<int, ImportFullfillmentForInstanceJSON>();
+
+            //Add the items
+            foreach (var ImportRequestForInstanceDto in items)
+            {
+                int instanceId = ImportRequestForInstanceDto.InstanceId;
+                var vault = await GetVaultForInstance(instanceId.ToString());
+                if (vault == null) throw new Exception();
+                foreach (var item in ImportRequestForInstanceDto.Items)
+                {
+                    string name = ((JsonElement)item[0]).ToString();
+                    int qty = 0;
+                    ((JsonElement)item[1]).TryGetInt32(out qty);
+                    var itemStack = new ItemStackDTO() { NameAndQuality = name, Quantity = qty };
+                    //Build up a list of what can be imported, subtract from vault storage
+                    int actualQuantity = await DecrementItemStack(vault.Id, itemStack);
+
+                    if (!actualImports.ContainsKey(instanceId)) {
+                        actualImports.Add(instanceId, new ImportFullfillmentForInstanceJSON() {InstanceId = instanceId });
+                    }
+                    if (!actualImports[instanceId].Items.ContainsKey(itemStack.NameAndQuality))
+                    {
+                        actualImports[instanceId].Items.Add(itemStack.NameAndQuality, actualQuantity);
+                    }
+                    else
+                    {
+                        actualImports[instanceId].Items[itemStack.NameAndQuality] += actualQuantity;
+                    }
+                }
+            }
+
+            var it = new Dictionary<string, int>();
+            it.Add("iron-plate:normal", 2);
+            actualImports.Add(1176834574, new ImportFullfillmentForInstanceJSON() { 
+                InstanceId = 1176834574,
+                Items = it
+            });
+
+            //Send list of imports back to controller
+            await _clusterioService.SetActualImportsForInstances(actualImports, stoppingToken);
+
+            await _context.SaveChangesAsync();
+        }
     }
 
     public class VaultProfile : Profile
