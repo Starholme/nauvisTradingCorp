@@ -15,15 +15,24 @@ namespace web
             {
                 counter++;
                 // do async work
-                using (var scope = _serviceScopeFactory.CreateScope())
+                try
                 {
-                    if (counter % 5 == 0)
+                    using (var scope = _serviceScopeFactory.CreateScope())
                     {
                         var vaultService = scope.ServiceProvider.GetRequiredService<IVaultService>();
-                        await vaultService.GetExportsFromInstances(stoppingToken);
+                        if (counter % 5 == 0)
+                        {
+                            await vaultService.GetExportsFromInstances(stoppingToken);
+                        }
                         await vaultService.GetImportRequestsFromInstances(stoppingToken);
                     }
                 }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                    
+                }
+
                 if (counter > 599) counter = 0;
             }
         }

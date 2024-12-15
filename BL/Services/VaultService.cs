@@ -174,12 +174,12 @@ namespace BL.Services
                 }
             }
 
-            var it = new Dictionary<string, int>();
+            /*var it = new Dictionary<string, int>();
             it.Add("iron-plate:normal", 2);
             actualImports.Add(1176834574, new ImportFullfillmentForInstanceJSON() { 
                 InstanceId = 1176834574,
                 Items = it
-            });
+            });*/
 
             //Send list of imports back to controller
             await _clusterioService.SetActualImportsForInstances(actualImports, stoppingToken);

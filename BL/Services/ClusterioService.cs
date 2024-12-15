@@ -106,7 +106,6 @@ namespace BL.Services
 
         public async Task SetActualImportsForInstances(Dictionary<int, ImportFullfillmentForInstanceJSON> imports, CancellationToken cancellationToken)
         {
-            string json = JsonSerializer.Serialize(imports);
             await _cluster.PostAsJsonAsync(_baseUrl + "setActualImportsForInstances", imports, cancellationToken);
         }
     }
