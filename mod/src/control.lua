@@ -6,17 +6,39 @@ local clusterio_api = require("__clusterio_lib__/api")
 local debug = 1
 local exportOnTick = 119
 local importOnTick = 120
+local zoneRadius = 10
 
 function OnBuiltEntity(event)
     local entity = event.entity
 
     if not (entity and entity.valid) then return end
 
-    local name = entity.name
-    if name == "entity-ghost" then name = entity.ghost_name end
+    if ZoneCheckFailed(entity) then
+        entity.destroy()
+        game.print("Nauvis Trading Corporation only transports within " .. zoneRadius .. " tiles of your start location.")
+        return
+    end
+
     if entity.type ~= "entity-ghost" then
         AddEntity(entity)
     end
+end
+
+function ZoneCheckFailed(entity)
+    local name = entity.name
+    if name == "entity-ghost" then name = entity.ghost_name end
+    --Do we care about this entity?
+    if name == "ntc-export-chest" or name == "ntc-import-chest" then
+        --Is it in the spawn zone?
+        local spawn = game.forces["player"].get_spawn_position(entity.surface)
+        local x = entity.position.x - spawn.x
+        local y = entity.position.y - spawn.y
+        if math.abs(x) > zoneRadius or math.abs(y) > zoneRadius then
+            return true
+        end
+    end
+
+    return false
 end
 
 function AddEntity(entity)
