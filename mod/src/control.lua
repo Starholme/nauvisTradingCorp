@@ -4,6 +4,8 @@ local clusterio_api = require("__clusterio_lib__/api")
 
 --0 off, 1 low, 2 high
 local debug = 1
+local exportOnTick = 119
+local importOnTick = 120
 
 function OnBuiltEntity(event)
     local entity = event.entity
@@ -12,19 +14,20 @@ function OnBuiltEntity(event)
 
     local name = entity.name
     if name == "entity-ghost" then name = entity.ghost_name end
-
     if entity.type ~= "entity-ghost" then
         AddEntity(entity)
     end
 end
 
 function AddEntity(entity)
+    --Track export chests
     if entity.name == "ntc-export-chest" then
         if debug > 1 then
             game.print("Add Entity ".. entity.name)
         end
         table.insert(storage.exportChests, entity)
     end
+    --Track import chests
     if entity.name == "ntc-import-chest" then
         if debug > 1 then
             game.print("Add Entity ".. entity.name)
@@ -36,11 +39,12 @@ end
 function Reset()
     storage.ticksSinceMasterPinged = 601
     storage.isConnected = false
+
     storage.exportChests = {}
-    storage.exportList = {} --{"itemName:quality"=count, ...}
+    storage.exportList = {}
 
     storage.importChests = {}
-    storage.importList = {} --{"itemName:quality"=count, ...}
+    storage.importList = {}
     storage.collectImports = true
     storage.imported = "EMPTY"
     storage.importsAvailable = {}
@@ -55,16 +59,17 @@ function TickPing(event)
             game.print("ticksSinceMasterPinged:"..ticks)
         end
     end
+
     if ticks < 300 then
         storage.isConnected = true
-    else
+    else --If we don't hear from the server in 300 ticks, mark us disconnected.
         storage.isConnected = false
     end
 end
 
 function TickExports(event)
-    if event.tick % 120 > 0 then return end
-    
+    if event.tick % exportOnTick > 0 then return end
+
     --Loop the export chests, empty them, add the items to a list
     local chests = storage.exportChests
     for _, data in ipairs(chests) do
@@ -72,7 +77,7 @@ function TickExports(event)
         local items = inventory.get_contents()
         for _, iwqc in pairs(items) do
             local itemName = iwqc.name..":"..iwqc.quality
-            if debug > 0 then game.print(itemName.."="..iwqc.count) end
+            if debug > 1 then game.print(itemName.."="..iwqc.count) end
             storage.exportList[itemName] = (storage.exportList[itemName] or 0) + iwqc.count
             inventory.remove(iwqc)
         end
@@ -96,15 +101,19 @@ function TallyImportsForChest(entity)
     if entity.valid and not entity.to_be_deconstructed(entity.force) then
         local l_sections = entity.get_logistic_sections()
         local inventory = entity.get_inventory(defines.inventory.item_main)
-        for i = 1, l_sections.sections_count do
+
+        for i = 1, l_sections.sections_count do --Loop logistic sections
             local l_section = l_sections.sections[i]
             if l_section.active then 
-                for j = 1, l_section.filters_count do
+                for j = 1, l_section.filters_count do --Loop each filter/request slot
                     local filter = l_section.filters[j]
                     local amount = filter.min
+
+                    --Get the amount that's in the inventory
                     local invCount = inventory.get_item_count({name=filter.value.name, quality = filter.value.quality})
                     amount = amount - invCount
                     if (amount < 0) then amount = 0 end
+
                     local itemName = filter.value.name .. ":" .. filter.value.quality
                     storage.importList[itemName] = (storage.exportList[itemName] or 0) + amount
                     if debug > 1 then game.print("ImportTallyAdd:" .. itemName .. amount) end
@@ -120,46 +129,40 @@ function TryImportChest(entity)
         local l_sections = entity.get_logistic_sections()
         local inventory = entity.get_inventory(defines.inventory.item_main)
         local available = storage.importsAvailable
-        for i = 1, l_sections.sections_count do
+
+        for i = 1, l_sections.sections_count do --Loop logistic sections
             local l_section = l_sections.sections[i]
             if l_section.active then 
-                for j = 1, l_section.filters_count do
+                for j = 1, l_section.filters_count do --Loop each filter/request
                     local filter = l_section.filters[j]
                     local amount = filter.min
                     local itemName = filter.value.name .. ":" .. filter.value.quality
-                    
+
                     --Compare the filter with actual value in inventory
                     local invCount = inventory.get_item_count({name=filter.value.name, quality = filter.value.quality})
                     local requiredAmount = amount - invCount;
                     local foundAmount = 0;
-                    game.print("TryImportChest req amount"..requiredAmount)
                     if requiredAmount > 0 then
                         --Look for this item in the available imports
                         for k, v in pairs(available) do
-                            game.print("available loop")
-                            --game.print(serpent.block(v))
                             if v.name == itemName then
-                                game.print("available loop - found item, count:" .. v.count .. " req:" .. requiredAmount .. " itemname" .. itemName)
                                 --Enough items available
                                 if requiredAmount < v.count then
-                                    game.print("available loop - enough")
                                     v.count = v.count - requiredAmount
                                     foundAmount = requiredAmount
                                 --Not enough, or just enough
                                 elseif requiredAmount >= v.count then
-                                    game.print("available loop - not enough")
                                     foundAmount = foundAmount + v.count
                                     requiredAmount = requiredAmount - v.count
                                     available[k] = nil
                                 end
                             end
                         end
-                        game.print("available adding foundAmount:"..foundAmount)
                         --If some found, add them to inventory
                         if foundAmount > 0 then
                             inventory.insert({name=filter.value.name, quality = filter.value.quality, count = foundAmount})
                         end
-                        
+
                     end
                 end
             end
@@ -168,16 +171,13 @@ function TryImportChest(entity)
 end
 
 function TickImports(event)
-    if event.tick % 120 > 0 then return end
-    
+    if event.tick % importOnTick > 0 then return end
+
     if storage.imported ~= "EMPTY" then
         --Shuffle from imported to importsAvailable
-        game.print("storage.imported")
-        game.print(storage.imported)
         local imports = helpers.json_to_table(storage.imported)
         for k, v in pairs(imports) do
             table.insert(storage.importsAvailable, {name = v[1],  count = v[2]})
-            game.print("Added to available: ".. v[1] .. " " .. v[2])
         end
         storage.imported = "EMPTY";
     end
@@ -187,7 +187,6 @@ function TickImports(event)
     for _, data in ipairs(chests) do
         TryImportChest(data)
     end
-
 
     if debug > 1 then 
         if storage.collectImports then game.print("Collect imports: true") end
@@ -199,7 +198,7 @@ function TickImports(event)
         storage.retryImportsCounter = storage.retryImportsCounter + 1
         if storage.retryImportsCounter > 30 then
             storage.collectImports = true
-            game.print("Retrying requests!")
+            game.print("Retrying requests! There might be something wrong with the server.")
         end
         return
     end
@@ -216,7 +215,6 @@ function TickImports(event)
             table.insert(items, {name, count})
         end
         if #items > 0 then
-            if debug > 1 then game.print("nauvis_trading_corporation:importRequestFromInstance") end
             clusterio_api.send_json("nauvis_trading_corporation:importRequestFromInstance", items)
             storage.importList = {}
             --Stop collecting till we hear back
@@ -228,13 +226,11 @@ end
 
 script.on_init(function()
 	clusterio_api.init()
-	--RegisterClusterioEvents()
 	Reset()
 end)
 
 script.on_load(function()
 	clusterio_api.init()
-	--RegisterClusterioEvents()
 end)
 
 script.on_event(defines.events.on_built_entity, function(event)
