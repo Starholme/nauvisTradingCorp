@@ -71,6 +71,8 @@ function Reset()
     storage.imported = "EMPTY"
     storage.importsAvailable = {}
     storage.retryImportsCounter = 0
+
+    storage.zoneDraw = {}
 end
 
 function TickPing(event)
@@ -304,4 +306,48 @@ script.on_event(defines.events.on_tick, function(event)
     TickPing(event)
     TickExports(event)
     TickImports(event)
+end)
+
+script.on_event(defines.events.on_player_cursor_stack_changed, function(event)
+	local player = game.players[event.player_index]
+	if not player or not player.valid then
+		return
+	end
+
+	local drawZone = false
+
+    local stack = player.cursor_stack
+    if stack and stack.valid and stack.valid_for_read then
+        if stack.name == "ntc-export-chest" or stack.name == "ntc-import-chest" then
+            drawZone = true
+        end
+    elseif player.cursor_ghost then
+        if player.cursor_ghost.name == "ntc-export-chest" or player.cursor_ghost.name == "ntc-import-chest" then
+            drawZone = true
+        end
+    end
+
+	if drawZone then
+		if not storage.zoneDraw[event.player_index] then
+			local spawn = player.force.get_spawn_position(player.surface)
+			local x0 = spawn.x
+			local y0 = spawn.y
+
+			storage.zoneDraw[event.player_index] = rendering.draw_rectangle {
+				color = {r=0.8 , g=0.1, b=0},
+				width = 12,
+				filled = false,
+				left_top = {x0 - zoneRadius, y0 - zoneRadius},
+				right_bottom = {x0 + zoneRadius, y0 + zoneRadius},
+				surface = player.surface,
+				players = {player},
+				draw_on_ground = true,
+			}
+		end
+	else
+		if storage.zoneDraw[event.player_index] then
+            storage.zoneDraw[event.player_index].destroy()
+			storage.zoneDraw[event.player_index] = nil
+		end
+	end
 end)
