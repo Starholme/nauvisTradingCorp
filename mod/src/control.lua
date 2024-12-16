@@ -224,6 +224,27 @@ function TickImports(event)
     end
 end
 
+function RemoveEntity(list, entity)
+	for i, v in ipairs(list) do
+		if v == entity then
+			table.remove(list, i)
+			break
+		end
+	end
+end
+
+function OnKilledEntity(event)
+	local entity = event.entity
+	if entity.type ~= "entity-ghost" then
+		--remove the entities from the tables as they are dead
+		if entity.name == "ntc-export-chest" then
+			RemoveEntity(storage.exportChests, entity)
+		elseif entity.name == "ntc-import-chest" then
+			RemoveEntity(storage.importChests, entity)
+        end
+	end
+end
+
 script.on_init(function()
 	clusterio_api.init()
 	Reset()
@@ -239,6 +260,22 @@ end)
 
 script.on_event(defines.events.on_robot_built_entity, function(event)
 	OnBuiltEntity(event)
+end)
+
+script.on_event(defines.events.on_entity_died, function(event)
+	OnKilledEntity(event)
+end)
+
+script.on_event(defines.events.on_robot_pre_mined, function(event)
+	OnKilledEntity(event)
+end)
+
+script.on_event(defines.events.on_pre_player_mined_item, function(event)
+	OnKilledEntity(event)
+end)
+
+script.on_event(defines.events.script_raised_destroy, function(event)
+	OnKilledEntity(event)
 end)
 
 script.on_event(defines.events.on_tick, function(event)
